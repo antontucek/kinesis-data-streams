@@ -1,0 +1,64 @@
+Resources:
+  OrderStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: OrderStream
+      ShardCount: 1
+
+  KinesisProducerRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: KinesisProducerRole
+      Path: /
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:RegisterStreamConsumer
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+            Resource: !GetAtt OrderStream.Arn
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStreamConsumer
+              - kinesis:SubscribeToShard
+            Resource:
+              Fn::Join:
+                - ""
+                - - !GetAtt OrderStream.Arn
+                  - "/*"
+                  
+  KinesisConsumerRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: KinesisConsumerRole
+      Path: /
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:GetRecords
+              - kinesis:GetShardIterator
+              - kinesis:ListShards
+            Resource: !GetAtt OrderStream.Arn
+          - Effect: Allow
+            Action:
+              - dynamodb:*
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:dynamodb:"
+                  - !Ref AWS::Region
+                  - ":"
+                  - !Ref AWS::AccountId
+                  - ":table/OrderStream"
+                  - "KCL"
+          - Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+            Resource: "*"
